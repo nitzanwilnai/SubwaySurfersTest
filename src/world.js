@@ -165,7 +165,9 @@ export class World {
     // most one lane per row, and we track how far ahead each lane is occupied
     // by a (long) train so we never wall off every lane at once.
     this.safeLane = Math.floor(CONFIG.laneCount / 2);
-    this.laneTrainFarZ = new Array(CONFIG.laneCount).fill(Infinity);
+    // How many more upcoming rows each lane stays occupied by a passing train.
+    // Tracked in rows (not world-z) so it works for steady-state spawning too.
+    this.laneBlockedRows = new Array(CONFIG.laneCount).fill(0);
 
     // Start with a clear runway, then begin spawning ahead.
     this.spawnCursorZ = -CONFIG.tileLength * 2.5;
@@ -203,9 +205,9 @@ export class World {
     const difficulty = THREE.MathUtils.clamp(this.distance / 1200, 0, 1);
     const laneCount = CONFIG.laneCount;
 
-    // Which lanes are still occupied by an earlier (longer) train at this z.
+    // Which lanes are still occupied by an earlier (longer) train.
     const trainBlocked = [];
-    for (let l = 0; l < laneCount; l++) trainBlocked[l] = z > this.laneTrainFarZ[l];
+    for (let l = 0; l < laneCount; l++) trainBlocked[l] = this.laneBlockedRows[l] > 0;
 
     // Drift the safe corridor by at most one lane, only into a train-free lane.
     const candidates = [];
@@ -231,8 +233,9 @@ export class World {
         const type = this._spawnObstacle(l, z, difficulty);
         occupied.add(l);
         if (type === OBSTACLE.TRAIN) {
-          // Mark this lane occupied for the train's whole length (+ margin).
-          this.laneTrainFarZ[l] = z - this.trainLength - 0.5;
+          // Keep this lane occupied while the train's length covers later rows.
+          // (+1 because the counter is decremented at the end of this row.)
+          this.laneBlockedRows[l] = Math.ceil(this.trainLength / this.rowGap);
         }
       }
     }
@@ -243,6 +246,11 @@ export class World {
     if (free.length && Math.random() < 0.85) {
       const lane = Math.random() < 0.6 || !free.includes(safe) ? free[(Math.random() * free.length) | 0] : safe;
       this._spawnCoins(lane, z);
+    }
+
+    // Age out train occupancy by one row.
+    for (let l = 0; l < laneCount; l++) {
+      if (this.laneBlockedRows[l] > 0) this.laneBlockedRows[l]--;
     }
   }
 
