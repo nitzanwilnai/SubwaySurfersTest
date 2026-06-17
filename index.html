@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0b1020" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1020'/%3E%3Ccircle cx='32' cy='32' r='18' fill='%23ffcb2b'/%3E%3Ctext x='32' y='42' font-size='24' text-anchor='middle' fill='%234a3500' font-family='Arial' font-weight='bold'%3E%24%3C/text%3E%3C/svg%3E"
+    />
+    <title>Subway Runner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- In-game HUD -->
+      <div id="hud" class="hud hidden">
+        <div class="hud-top">
+          <div class="hud-pill">
+            <span class="hud-icon">★</span>
+            <span id="score-value">0</span>
+          </div>
+          <div class="hud-pill coins">
+            <span class="hud-icon">●</span>
+            <span id="coin-value">0</span>
+          </div>
+          <button id="pause-btn" class="icon-btn" aria-label="Pause">❚❚</button>
+        </div>
+      </div>
+
+      <!-- Start menu -->
+      <div id="start-screen" class="overlay">
+        <div class="panel">
+          <h1 class="title">SUBWAY<span>RUNNER</span></h1>
+          <p class="subtitle">Dodge the trains. Grab the coins. Run forever.</p>
+          <button id="play-btn" class="primary-btn">PLAY</button>
+          <div class="controls-help">
+            <div class="control-row"><kbd>◀</kbd><kbd>▶</kbd> or <kbd>A</kbd><kbd>D</kbd> — Move</div>
+            <div class="control-row"><kbd>▲</kbd> / <kbd>W</kbd> / <kbd>Space</kbd> — Jump</div>
+            <div class="control-row"><kbd>▼</kbd> / <kbd>S</kbd> — Roll</div>
+            <div class="control-row mobile-only">Swipe to move, jump and roll</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause screen -->
+      <div id="pause-screen" class="overlay hidden">
+        <div class="panel">
+          <h2 class="panel-title">PAUSED</h2>
+          <button id="resume-btn" class="primary-btn">RESUME</button>
+          <button id="restart-from-pause-btn" class="secondary-btn">RESTART</button>
+        </div>
+      </div>
+
+      <!-- Game over screen -->
+      <div id="gameover-screen" class="overlay hidden">
+        <div class="panel">
+          <h2 class="panel-title">GAME OVER</h2>
+          <div class="results">
+            <div class="result-row">
+              <span>Score</span>
+              <strong id="final-score">0</strong>
+            </div>
+            <div class="result-row">
+              <span>Coins</span>
+              <strong id="final-coins">0</strong>
+            </div>
+            <div class="result-row best">
+              <span>Best</span>
+              <strong id="best-score">0</strong>
+            </div>
+          </div>
+          <button id="replay-btn" class="primary-btn">PLAY AGAIN</button>
+        </div>
+      </div>
+
+      <div id="loading" class="overlay">
+        <div class="loader"></div>
+        <p>Loading…</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
