@@ -190,6 +190,15 @@ kbd {
   display: none;
 }
 
+.version {
+  margin-top: 22px;
+  font-family: 'Inter', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
 /* ---------- HUD ---------- */
 .hud {
   position: absolute;
