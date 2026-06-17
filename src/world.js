@@ -161,6 +161,12 @@ export class World {
     this.obstacles = [];
     this.coins = [];
 
+    // The "safe corridor": a lane guaranteed to be passable. It drifts by at
+    // most one lane per row, and we track how far ahead each lane is occupied
+    // by a (long) train so we never wall off every lane at once.
+    this.safeLane = Math.floor(CONFIG.laneCount / 2);
+    this.laneTrainFarZ = new Array(CONFIG.laneCount).fill(Infinity);
+
     // Start with a clear runway, then begin spawning ahead.
     this.spawnCursorZ = -CONFIG.tileLength * 2.5;
     while (this.spawnCursorZ > -this.spawnDistance) {
@@ -189,47 +195,55 @@ export class World {
   }
 
   // ---------- Spawning ----------
+  // Generation guarantees a continuous, reachable path: the "safe lane" is
+  // never blocked and only ever drifts by one lane between rows, while a
+  // train's full length is tracked so a long train can't combine with the
+  // next row's obstacles to wall off every lane.
   _spawnRow(z) {
-    // Decide row content. Difficulty grows with distance.
     const difficulty = THREE.MathUtils.clamp(this.distance / 1200, 0, 1);
-    const r = Math.random();
+    const laneCount = CONFIG.laneCount;
 
-    // Choose how many lanes get blocked (never block all three at once).
-    let blockedLanes = [];
-    if (r < 0.18) {
-      // empty-ish row, maybe a coin arc
-    } else if (r < 0.55) {
-      blockedLanes = [this._randLane()];
-    } else if (r < 0.55 + 0.3 * difficulty + 0.1) {
-      blockedLanes = this._pickTwoLanes();
-    } else {
-      blockedLanes = [this._randLane()];
+    // Which lanes are still occupied by an earlier (longer) train at this z.
+    const trainBlocked = [];
+    for (let l = 0; l < laneCount; l++) trainBlocked[l] = z > this.laneTrainFarZ[l];
+
+    // Drift the safe corridor by at most one lane, only into a train-free lane.
+    const candidates = [];
+    for (const d of [-1, 0, 1]) {
+      const l = this.safeLane + d;
+      if (l >= 0 && l < laneCount && !trainBlocked[l]) candidates.push(l);
+    }
+    // The current safe lane is always train-free, so `candidates` is non-empty.
+    const others = candidates.filter((l) => l !== this.safeLane);
+    if (others.length && Math.random() < 0.45) {
+      this.safeLane = others[(Math.random() * others.length) | 0];
+    }
+    const safe = this.safeLane;
+
+    // Block some of the non-safe lanes. Density rises with difficulty.
+    const blockChance = 0.4 + 0.42 * difficulty;
+    const occupied = new Set();
+    for (let l = 0; l < laneCount; l++) {
+      if (trainBlocked[l]) occupied.add(l);
+      if (l === safe) continue; // never block the guaranteed path
+      if (trainBlocked[l]) continue; // already covered by a passing train
+      if (Math.random() < blockChance) {
+        const type = this._spawnObstacle(l, z, difficulty);
+        occupied.add(l);
+        if (type === OBSTACLE.TRAIN) {
+          // Mark this lane occupied for the train's whole length (+ margin).
+          this.laneTrainFarZ[l] = z - this.trainLength - 0.5;
+        }
+      }
     }
 
-    const usedLanes = new Set();
-    for (const lane of blockedLanes) {
-      usedLanes.add(lane);
-      this._spawnObstacle(lane, z, difficulty);
-    }
-
-    // Place a coin pattern on a free lane.
-    const freeLanes = [];
-    for (let l = 0; l < CONFIG.laneCount; l++) if (!usedLanes.has(l)) freeLanes.push(l);
-    if (freeLanes.length && Math.random() < 0.8) {
-      const lane = freeLanes[(Math.random() * freeLanes.length) | 0];
+    // Lay coins down a lane that is clear at this row (prefer the safe lane).
+    const free = [];
+    for (let l = 0; l < laneCount; l++) if (!occupied.has(l)) free.push(l);
+    if (free.length && Math.random() < 0.85) {
+      const lane = Math.random() < 0.6 || !free.includes(safe) ? free[(Math.random() * free.length) | 0] : safe;
       this._spawnCoins(lane, z);
     }
-  }
-
-  _randLane() {
-    return (Math.random() * CONFIG.laneCount) | 0;
-  }
-
-  _pickTwoLanes() {
-    const a = this._randLane();
-    let b = this._randLane();
-    while (b === a) b = this._randLane();
-    return [a, b];
   }
 
   _spawnObstacle(lane, z, difficulty) {
@@ -264,6 +278,7 @@ export class World {
 
     this.group.add(mesh);
     this.obstacles.push(o);
+    return type;
   }
 
   _buildObstacle(type) {

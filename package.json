@@ -1,6 +1,6 @@
 {
   "name": "subway-runner",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A Subway Surfers-style 3D endless runner game built with Three.js",
   "type": "module",
   "scripts": {
