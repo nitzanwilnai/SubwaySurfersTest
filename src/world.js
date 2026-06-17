@@ -395,9 +395,10 @@ export class World {
       }
     }
 
-    // Move obstacles & cull.
+    // Move obstacles & cull. Remember the pre-move z for swept collision.
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
       const o = this.obstacles[i];
+      o.prevZ = o.mesh.position.z;
       o.mesh.position.z += dz;
       if (o.mesh.position.z - (o.aabb.halfZ || 0) > recycleZ + 6) {
         this._recycleObstacle(o);

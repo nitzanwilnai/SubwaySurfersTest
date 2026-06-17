@@ -183,9 +183,9 @@ export class Player {
     const heavy = type === 'train';
     this.group.scale.set(1, 1, 1);
     this._duckOffset = 0;
-    this.crashVZ = heavy ? 11 : 6; // recoil toward the camera (+z)
-    this.velocityY = heavy ? 8 : 5; // little pop into the air
-    this.crashSpin = (Math.random() < 0.5 ? -1 : 1) * (heavy ? 7 : 4);
+    this.crashVZ = heavy ? 6.5 : 4; // recoil toward the camera (+z)
+    this.velocityY = heavy ? 6.5 : 4.5; // little pop into the air
+    this.crashSpin = (Math.random() < 0.5 ? -1 : 1) * (heavy ? 6 : 3.5);
   }
 
   // The collision box changes depending on the state.
@@ -247,7 +247,7 @@ export class Player {
     this.velocityY += CONFIG.gravity * dt;
     this.group.position.y += this.velocityY * dt;
     this.group.position.z += this.crashVZ * dt;
-    this.crashVZ *= Math.max(0, 1 - 3 * dt); // air drag so it settles
+    this.crashVZ *= Math.max(0, 1 - 5 * dt); // air drag so it settles quickly
 
     if (this.group.position.y <= 0) {
       this.group.position.y = 0;

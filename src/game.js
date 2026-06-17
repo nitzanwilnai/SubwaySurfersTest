@@ -213,13 +213,17 @@ export class Game {
     const col = this.player.getCollider();
     const px = this.player.group.position.x;
 
-    // Obstacles
+    // Obstacles — swept along z so fast obstacles can never tunnel through.
+    const pr = CONFIG.playerRadius;
     for (const o of this.world.obstacles) {
-      const oz = o.mesh.position.z;
       const a = o.aabb;
-      if (Math.abs(oz) > a.halfZ + CONFIG.playerRadius) continue; // not aligned in depth
-      if (Math.abs(o.mesh.position.x - px) > a.halfX + CONFIG.playerRadius) continue; // different lane
-      // Vertical overlap?
+      const zCur = o.mesh.position.z;
+      const zPrev = o.prevZ ?? zCur;
+      const zMaxCur = zCur + a.halfZ; // back edge (toward camera) this frame
+      const zMinPrev = (zPrev < zCur ? zPrev : zCur) - a.halfZ; // front edge last frame
+      // Did the obstacle reach the player and not already pass it last frame?
+      if (zMaxCur < -pr || zMinPrev > pr) continue; // not in depth this frame
+      if (Math.abs(o.mesh.position.x - px) > a.halfX + pr) continue; // different lane
       if (col.maxY > a.minY && col.minY < a.maxY) {
         this._crash(o.type);
         return;
