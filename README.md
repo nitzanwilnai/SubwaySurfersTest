@@ -9,7 +9,7 @@ A Subway Surfers–style 3D endless runner built with [Three.js](https://threejs
 - **Endless track** – the world is generated procedurally and scrolls toward you forever.
 - **Three lanes** – switch lanes to dodge obstacles.
 - **Obstacles**
-  - **Trains** – tall; you must switch lanes to avoid them.
+  - **Trains** – tall; you must switch lanes to avoid them. Run into one and you bounce off it (with a camera shake) before the game ends.
   - **Barriers** (red) – jump over them.
   - **Gates** (yellow bar) – roll/slide under them.
   - **Crates** (grey) – jump over them.

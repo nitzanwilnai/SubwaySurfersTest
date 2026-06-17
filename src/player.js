@@ -5,6 +5,7 @@ const STATE = {
   RUN: 'run',
   JUMP: 'jump',
   ROLL: 'roll',
+  CRASH: 'crash',
 };
 
 // Builds and animates a stylized runner character from primitives.
@@ -20,6 +21,8 @@ export class Player {
     this.rollTimer = 0;
     this.runCycle = 0;
     this.alive = true;
+    this.crashVZ = 0;
+    this.crashSpin = 0;
 
     this._build();
   }
@@ -129,8 +132,17 @@ export class Player {
     this.velocityY = 0;
     this.rollTimer = 0;
     this.alive = true;
+    this.crashVZ = 0;
+    this.crashSpin = 0;
     this.group.rotation.set(0, 0, 0);
     this.group.scale.set(1, 1, 1);
+    this._resetLimbs();
+  }
+
+  _resetLimbs() {
+    for (const limb of [this.legL, this.legR, this.armL, this.armR]) {
+      if (limb) limb.rotation.set(0, 0, 0);
+    }
   }
 
   moveLeft() {
@@ -156,12 +168,24 @@ export class Player {
   }
 
   roll() {
+    if (this.state === STATE.CRASH) return;
     if (this.state === STATE.JUMP) {
       // Fast-fall + roll if airborne
       this.velocityY = -CONFIG.jumpVelocity;
     }
     this.state = STATE.ROLL;
     this.rollTimer = CONFIG.rollDuration;
+  }
+
+  // Knock the runner back off a solid obstacle. Trains hit hardest.
+  crash(type) {
+    this.state = STATE.CRASH;
+    const heavy = type === 'train';
+    this.group.scale.set(1, 1, 1);
+    this._duckOffset = 0;
+    this.crashVZ = heavy ? 11 : 6; // recoil toward the camera (+z)
+    this.velocityY = heavy ? 8 : 5; // little pop into the air
+    this.crashSpin = (Math.random() < 0.5 ? -1 : 1) * (heavy ? 7 : 4);
   }
 
   // The collision box changes depending on the state.
@@ -182,6 +206,11 @@ export class Player {
   }
 
   update(dt) {
+    if (this.state === STATE.CRASH) {
+      this._updateCrash(dt);
+      return;
+    }
+
     // Lateral lane interpolation
     const dx = this.targetX - this.group.position.x;
     this.group.position.x += dx * Math.min(1, CONFIG.laneChangeSpeed * dt);
@@ -211,6 +240,34 @@ export class Player {
     }
 
     this._animate(dt);
+  }
+
+  _updateCrash(dt) {
+    // Ballistic recoil away from the obstacle with a tumble.
+    this.velocityY += CONFIG.gravity * dt;
+    this.group.position.y += this.velocityY * dt;
+    this.group.position.z += this.crashVZ * dt;
+    this.crashVZ *= Math.max(0, 1 - 3 * dt); // air drag so it settles
+
+    if (this.group.position.y <= 0) {
+      this.group.position.y = 0;
+      this.velocityY *= -0.35; // small bounce on landing
+      if (Math.abs(this.velocityY) < 1.5) this.velocityY = 0;
+    }
+
+    this.group.rotation.x += this.crashSpin * dt;
+    this.crashSpin *= Math.max(0, 1 - 2 * dt);
+    this.group.rotation.z *= Math.max(0, 1 - 6 * dt);
+
+    // Flail the limbs.
+    this.legL.rotation.x = -0.8;
+    this.legR.rotation.x = 0.8;
+    this.armL.rotation.x = -2.4;
+    this.armR.rotation.x = -2.0;
+
+    this.blob.position.y = 0.02 - this.group.position.y;
+    const shrink = THREE.MathUtils.clamp(1 - this.group.position.y * 0.12, 0.3, 1);
+    this.blob.scale.set(shrink, shrink, shrink);
   }
 
   _animate(dt) {

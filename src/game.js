@@ -8,6 +8,7 @@ export const GAME_STATE = {
   MENU: 'menu',
   PLAYING: 'playing',
   PAUSED: 'paused',
+  CRASHING: 'crashing',
   OVER: 'over',
 };
 
@@ -35,6 +36,8 @@ export class Game {
 
     this.clock = new THREE.Clock();
     this._tmpV = new THREE.Vector3();
+    this.crashTimer = 0;
+    this.shake = 0;
 
     window.addEventListener('resize', () => this._onResize());
     this._onResize();
@@ -104,6 +107,8 @@ export class Game {
   // ---------- State transitions ----------
   start() {
     this.coins = 0;
+    this.crashTimer = 0;
+    this.shake = 0;
     this.world.reset();
     this.player.reset();
     this.clock.getDelta(); // flush any accumulated time
@@ -170,6 +175,11 @@ export class Game {
       this.player.update(dt);
       this._checkCollisions();
       this._updateScore();
+    } else if (this.state === GAME_STATE.CRASHING) {
+      // World is frozen so the recoil reads clearly; only the player animates.
+      this.player.update(dt);
+      this.crashTimer -= dt;
+      if (this.crashTimer <= 0) this.gameOver();
     }
 
     this._updateCamera(dt);
@@ -180,7 +190,18 @@ export class Game {
     // Subtle lateral follow + speed-based pull-back.
     const targetX = this.player.group.position.x * 0.35;
     this.camera.position.x += (targetX - this.camera.position.x) * Math.min(1, 6 * dt);
-    this.camera.lookAt(this.camera.position.x * 0.5, 1.4, -CONFIG.cameraLookAhead);
+
+    // Decaying impact shake.
+    let sx = 0;
+    let sy = 0;
+    if (this.shake > 0) {
+      this.shake = Math.max(0, this.shake - dt * 1.6);
+      const amt = this.shake * this.shake;
+      sx = (Math.random() - 0.5) * amt;
+      sy = (Math.random() - 0.5) * amt;
+    }
+    this.camera.position.y = CONFIG.cameraOffset.y + sy;
+    this.camera.lookAt(this.camera.position.x * 0.5 + sx, 1.4 + sy, -CONFIG.cameraLookAhead);
   }
 
   _updateScore() {
@@ -200,7 +221,7 @@ export class Game {
       if (Math.abs(o.mesh.position.x - px) > a.halfX + CONFIG.playerRadius) continue; // different lane
       // Vertical overlap?
       if (col.maxY > a.minY && col.minY < a.maxY) {
-        this._die();
+        this._crash(o.type);
         return;
       }
     }
@@ -219,9 +240,14 @@ export class Game {
     }
   }
 
-  _die() {
+  _crash(type) {
     if (!this.player.alive) return;
     this.player.alive = false;
-    this.gameOver();
+    this.player.crash(type);
+    // Trains throw you back harder and pause longer before the game-over card.
+    const heavy = type === 'train';
+    this.shake = heavy ? 1.0 : 0.7;
+    this.crashTimer = heavy ? 0.95 : 0.7;
+    this.state = GAME_STATE.CRASHING;
   }
 }
