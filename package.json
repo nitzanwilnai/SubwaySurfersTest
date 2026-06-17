@@ -1,0 +1,25 @@
+{
+  "name": "subway-runner",
+  "version": "1.2.1",
+  "description": "A Subway Surfers-style 3D endless runner game built with Three.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "smoke": "node smoke-test.mjs"
+  },
+  "keywords": [
+    "game",
+    "endless-runner",
+    "threejs",
+    "subway-surfers"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  }
+}
